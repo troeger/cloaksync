@@ -1,4 +1,1 @@
 bumpversion
-python-keycloak
-kubernetes
-python-dotenv
