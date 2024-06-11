@@ -8,5 +8,6 @@ RUN apk add build-base libffi-dev && \
     mkdir /code/
 
 COPY sync.py /code/
+COPY .env.default /code/.env
 
 CMD ["python", "/code/sync.py"]

@@ -17,4 +17,8 @@ venv:
 	venv/bin/pip install -r deployment/requirements-prod.txt
 
 docker:
-	docker build .
+	docker build . -t troeger/cloaksync
+
+docker-run:
+	docker run --env-file .env troeger/cloaksync
+
