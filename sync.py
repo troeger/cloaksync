@@ -1,5 +1,6 @@
 import logging
 import urllib3
+import time
 from keycloak import KeycloakAdmin
 from keycloak import KeycloakOpenIDConnection
 from kubernetes import client, config as k8s_config, dynamic
@@ -233,66 +234,72 @@ def k8s_namespace_is_empty(namespace, checked_resources):
 ###
 
 
-# Connect Keycloak
-logger.info("Connecting to Keycloak ...")
-keycloak_connection = KeycloakOpenIDConnection(server_url=config['CS_KCK_SERVER'],
-                                               realm_name=config['CS_KCK_REALM'],
-                                               user_realm_name=config['CS_KCK_REALM'],
-                                               client_id=config['CS_KCK_CLIENT_ID'],
-                                               client_secret_key=config['CS_KCK_CLIENT_SECRET'],
-                                               verify=True)
-keycloak_adm = KeycloakAdmin(connection=keycloak_connection)
+while True:
+    # Connect Keycloak
+    logger.info("Connecting to Keycloak ...")
+    keycloak_connection = KeycloakOpenIDConnection(server_url=config['CS_KCK_SERVER'],
+                                                   realm_name=config['CS_KCK_REALM'],
+                                                   user_realm_name=config['CS_KCK_REALM'],
+                                                   client_id=config['CS_KCK_CLIENT_ID'],
+                                                   client_secret_key=config['CS_KCK_CLIENT_SECRET'],
+                                                   verify=True)
+    keycloak_adm = KeycloakAdmin(connection=keycloak_connection)
 
-# Fetch Kubernetes users from Keycloak
-logger.info("Fetching users from Keycloak ...")
-kck_users = list(kck_get_members(keycloak_adm, config['CS_KCK_GROUP_UUID']))
-logger.debug("Keycloak users: %s", list(kck_users))
+    # Fetch Kubernetes users from Keycloak
+    logger.info("Fetching users from Keycloak ...")
+    kck_users = list(kck_get_members(keycloak_adm, config['CS_KCK_GROUP_UUID']))
+    logger.debug("Keycloak users: %s", list(kck_users))
 
-# Fetch Kubernetes namespaces
-logger.info("Fetching namespaces from Kubernetes ...")
-k8s_namespaces = k8s_get_namespaces()
+    # Fetch Kubernetes namespaces
+    logger.info("Fetching namespaces from Kubernetes ...")
+    k8s_namespaces = k8s_get_namespaces()
 
-# Compute the effective set of namespaces, based on restrictions
-k8s_ns_ignore = config['CS_K8S_IGNORE_NAMESPACES'].split(',')
-k8s_effective_ns = [ns for ns in k8s_namespaces if ns not in k8s_ns_ignore]
-logger.debug("Effective Kubernetes namespaces: %s", k8s_effective_ns)
+    # Compute the effective set of namespaces, based on restrictions
+    k8s_ns_ignore = config['CS_K8S_IGNORE_NAMESPACES'].split(',')
+    k8s_effective_ns = [ns for ns in k8s_namespaces if ns not in k8s_ns_ignore]
+    logger.debug("Effective Kubernetes namespaces: %s", k8s_effective_ns)
 
-# Compute diff, based on the full view of existing namespaces
-missing_in_k8s = [item for item in kck_users if item not in k8s_namespaces]
-logger.debug("Missing in Kubernetes: %s", missing_in_k8s)
-missing_ns_in_kck = [item for item in k8s_namespaces if item not in kck_users]
-logger.debug("Missing in Keycloak: %s", missing_ns_in_kck)
+    # Compute diff, based on the full view of existing namespaces
+    missing_in_k8s = [item for item in kck_users if item not in k8s_namespaces]
+    logger.debug("Missing in Kubernetes: %s", missing_in_k8s)
+    missing_ns_in_kck = [item for item in k8s_namespaces if item not in kck_users]
+    logger.debug("Missing in Keycloak: %s", missing_ns_in_kck)
 
-# Create missing Kubernetes namespaces for Keycloak users
-if len(missing_in_k8s) == 0:
-    logger.info("All Keycloak users have corresponding namespaces.")
-else:
-    for kck_user in missing_in_k8s:
-        logger.info("Keycloak user '%s' has no namespace, creating it.", kck_user)
-        k8s_create_namespace_for_user(kck_user, config['CS_K8S_USER_PREFIX'] + kck_user)
-
-# Determine Kubernetes resource types to be considered
-resources = list(k8s_get_resources(config['CS_K8S_PRUNING_IGNORE_RESOURCES'].split(',')))
-
-# Go through the list of namespaces that we should have a look upon
-logger.info("Checking namespaces for validity.")
-pruning_check = config['CS_K8S_PRUNING_CHECK'].lower() in ("yes", "true", "t", "1")
-pruning_delete = config['CS_K8S_PRUNING_DELETE'].lower() in ("yes", "true", "t", "1")
-for ns in k8s_effective_ns:
-    logger.debug("Checking namespace '%s' ...", ns)
-    if ns in missing_ns_in_kck:
-        logger.info("Namespace '%s' has no corresponding Keycloak user.", ns)
-        if pruning_check:
-            # Prune empty Kubernetes namespaces that do not have a matching Keycloak user
-            if k8s_namespace_is_empty(ns, resources):
-                logger.info("  Namespace is empty.")
-                if pruning_delete:
-                    logger.info("  Deleting empty namespace.")
-                else:
-                    logger.info("  Deletion of empty namespaces is disabled, not touching it.")
-            else:
-                logger.info("  Namespace has resources and is not empty.")
+    # Create missing Kubernetes namespaces for Keycloak users
+    if len(missing_in_k8s) == 0:
+        logger.info("All Keycloak users have corresponding namespaces.")
     else:
-        logger.debug("Namespace '%s' has a corresponding Keycloak user, checking for validity ...", ns)
-        ensure_owner_role_binding(ns, config['CS_K8S_USER_PREFIX'] + ns)
-        ensure_additional_role_bindings(ns, config['CS_K8S_USER_PREFIX'] + ns)
+        for kck_user in missing_in_k8s:
+            logger.info("Keycloak user '%s' has no namespace, creating it.", kck_user)
+            k8s_create_namespace_for_user(kck_user, config['CS_K8S_USER_PREFIX'] + kck_user)
+
+    # Determine Kubernetes resource types to be considered
+    resources = list(k8s_get_resources(config['CS_K8S_PRUNING_IGNORE_RESOURCES'].split(',')))
+
+    # Go through the list of namespaces that we should have a look upon
+    logger.info("Checking namespaces for validity.")
+    pruning_check = config['CS_K8S_PRUNING_CHECK'].lower() in ("yes", "true", "t", "1")
+    pruning_delete = config['CS_K8S_PRUNING_DELETE'].lower() in ("yes", "true", "t", "1")
+    for ns in k8s_effective_ns:
+        logger.debug("Checking namespace '%s' ...", ns)
+        if ns in missing_ns_in_kck:
+            logger.info("Namespace '%s' has no corresponding Keycloak user.", ns)
+            if pruning_check:
+                # Prune empty Kubernetes namespaces that do not have a matching Keycloak user
+                if k8s_namespace_is_empty(ns, resources):
+                    logger.info("  Namespace is empty.")
+                    if pruning_delete:
+                        logger.info("  Deleting empty namespace.")
+                    else:
+                        logger.info("  Deletion of empty namespaces is disabled, not touching it.")
+                else:
+                    logger.info("  Namespace has resources and is not empty.")
+        else:
+            logger.debug("Namespace '%s' has a corresponding Keycloak user, checking for validity ...", ns)
+            ensure_owner_role_binding(ns, config['CS_K8S_USER_PREFIX'] + ns)
+            ensure_additional_role_bindings(ns, config['CS_K8S_USER_PREFIX'] + ns)
+
+    # Sleep until next run
+    sleep_time = int(config['CS_KCK_POLL_INTERVAL'])
+    logger.debug("Waiting %u seconds for next check.", sleep_time)
+    time.sleep(sleep_time)

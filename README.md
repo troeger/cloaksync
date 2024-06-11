@@ -24,6 +24,7 @@ CloakSync is configured through environment variables. Please set them according
 | Environment variable | Description | Example | mandatory? |
 | -------------------- | ----------- | ------- | ---------- |
 | CS_LOG_LEVEL | Log level (DEBUG, INFO, WARN, ERROR, CRITICAL) | DEBUG | yes |
+| CS_KCK_POLL_INTERVAL | Polling interval in Keycloak, in seconds | 60 | yes |
 | CS_KCK_SERVER  | Root URL of your Keycloak server |  https://auth.example.com | yes |
 | CS_KCK_REALM | Name of your Keycloak realm, f.e. | cluster | yes |
 | CS_KCK_CLIENT_ID | Client ID configured in Keycloak for the Kubernetes API server | admin-cli | yes |
