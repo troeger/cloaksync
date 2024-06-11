@@ -8,7 +8,7 @@ release-bumpversion:
 push:
 	git push --follow-tags
 
-release: release-bumpversion push
+release: venv release-bumpversion push
 
 # Checks if a virtualenv exists, and creates it in case
 venv:
