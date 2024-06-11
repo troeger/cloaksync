@@ -19,7 +19,7 @@ jobs:
         uses: crazy-max/ghaction-docker-meta@v1
         with:
           images: |
-            troeger/kubeportal
+            troeger/cloaksync
           tag-sha: true
       -
         name: Set up QEMU
