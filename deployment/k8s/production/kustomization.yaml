@@ -12,7 +12,8 @@ namespace: cloaksync
 
 configMapGenerator:
 - name: cloaksync
-  files:
+  envs:
     - .env
+  behavior: create    
 generatorOptions:
   disableNameSuffixHash: true 

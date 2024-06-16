@@ -18,5 +18,5 @@ spec:
       - name: cloaksync
         image: troeger/cloaksync
         envFrom:
-        - configMapRef:
-            name: cloaksync
+          - configMapRef:
+              name: cloaksync
