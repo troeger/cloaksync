@@ -1,17 +1,21 @@
 # CloakSync
 
-CloakSync is a docker-based daemon that synchronizes your Keycloak
-user database with your OIDC-enabled Kubernetes cluster. You want to 
-use this deaemon if:
+CloakSync is a docker-based daemon that makes sure that your Keycloak
+users have access to your OIDC-enabled Kubernetes cluster. It generates 
+a private namespace for each Keycloak user, and makes sure that all
+neccessary role bindings for access are set. Kubernetes users are identified 
+in Keycloak by membership in a Keycloak user group.
+
+You want to use this deaemon if:
 
   - You have Keycloak and Kubernetes in place.
-  - Your Keycloak installation is handling the user authentication.
+  - Your Keycloak installation is handling the authentication of your users.
   - Your Kubernetes API server uses this Keycloak installation for authentication (see this [Medium article](https://medium.com/elmo-software/kubernetes-authenticating-to-your-cluster-using-keycloak-eba81710f49b) for details).
   - Keycloak users are organized in groups. 
   - Every Keycloak user that is part of a defined group should have Kubernetes cluster access, with her own private namespace.
 
 CloakSync can be used as light-weight alternative for Rancher and other full-fledged
-solutions for OIDC-enabled user management.
+solutions with identity provider support. 
 
 ## Installation
 
@@ -19,7 +23,7 @@ CloakSync is expected to be deployed on the target Kubernetes cluster. The folde
 
 ## Configuration
 
-CloakSync is configured through environment variables. Please set them accordingly when deployment the Docker image to your Kubernetes cluster, f.e. with a ConfigMap.
+CloakSync is configured through environment variables. Please set them accordingly when deploying the Docker image to your Kubernetes cluster, as described below. 
 
 | Environment variable | Description | Example | mandatory? |
 | -------------------- | ----------- | ------- | ---------- |
@@ -57,3 +61,7 @@ This change allows you to fetch the value for CS_KCK_CLIENT_SECRET from the Cred
 
 Follow the details in this [Medium article](https://medium.com/elmo-software/kubernetes-authenticating-to-your-cluster-using-keycloak-eba81710f49b) for configuration the basic integration between Keycloak and the Kubernetes API server. 
 
+## Kubernetes deployment of CloakSync
+
+- permissions
+- kustomize 

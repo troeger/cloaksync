@@ -1,0 +1,36 @@
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: cloaksync-api-access
+rules:
+# Allow handling of namespaces. Mandatory.
+- apiGroups: [""]
+  resources: ["namespaces"]
+  verbs: ["get","list","create","delete"]
+# Allow security configuration for namespace. Mandatory.
+- apiGroups: ["rbac.authorization.k8s.io"]
+  resources: ["rolebindings", "roles"]
+  verbs: ["get","list","create"]
+# Allow additional binding of cluster roles. Optional.
+- apiGroups: ["rbac.authorization.k8s.io"]
+  resources: ["clusterroles"]
+  verbs: ["bind"]
+# Allow check for empty namespaces. Optional. 
+- apiGroups: ["", "apps", "networking.k8s.io"]
+  resources: ["*"]
+  verbs: ["get", "list"]
+---
+# This must be a ClusterRoleBinding, so that all namespaces
+# can be modified
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: cloaksync-api-access
+roleRef:
+  kind: ClusterRole
+  name: cloaksync-api-access
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: cloaksync

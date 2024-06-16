@@ -21,7 +21,14 @@ logger = logging.getLogger("cloak-sync")
 logger.setLevel(level)
 
 # Connect Kubernetes
-k8s_config.load_kube_config()
+try:
+    k8s_config.load_incluster_config()
+except Exception:
+    try:
+        k8s_config.load_kube_config()
+    except Exception:
+        logger.error("Could not load Kubernetes configuration.")
+
 k8s_core_api = client.CoreV1Api()
 k8s_apps_api = client.AppsV1Api()
 k8s_net_api = client.NetworkingV1Api()

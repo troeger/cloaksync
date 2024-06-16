@@ -16,9 +16,15 @@ venv:
 	venv/bin/pip install -r deployment/requirements-dev.txt
 	venv/bin/pip install -r deployment/requirements-prod.txt
 
+run:
+	venv/bin/python sync.py
+
 docker:
 	docker build . -t troeger/cloaksync
 
 docker-run:
 	docker run --env-file .env troeger/cloaksync
 
+deploy:
+	cp .env deployment/k8s/production/.env
+	kubectl apply -k deployment/k8s/production 
