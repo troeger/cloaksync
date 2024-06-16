@@ -1,22 +1,24 @@
 import logging
 import urllib3
 import time
+import os
 from keycloak import KeycloakAdmin
 from keycloak import KeycloakOpenIDConnection
 from kubernetes import client, config as k8s_config, dynamic
 from kubernetes.client.rest import ApiException
 from kubernetes.dynamic.resource import ResourceList
-from dotenv import dotenv_values
+from dotenv import load_dotenv
 
 # disable kubernetes requests API
 urllib3.disable_warnings()
 
 # load .env file
-config = dotenv_values()
+load_dotenv()
+k8s_user_prefix = os.getenv('CS_K8S_USER_PREFIX')
 
 # configure logging
 logging.basicConfig(format="[%(levelname)s] %(asctime)s %(message)s")
-level = logging.getLevelName(config['CS_LOG_LEVEL'])
+level = logging.getLevelName(os.getenv('CS_LOG_LEVEL'))
 logger = logging.getLogger("cloak-sync")
 logger.setLevel(level)
 
@@ -100,8 +102,8 @@ def ensure_owner_role_binding(namespace, user):
     Ensures that the neccessary role bindings for OIDC
     access exist for the given user in the given namespace.
     """
-    owner_rolename = config["CS_K8S_OWNER_ROLE_NAME"]
-    owner_rolebindingname = config["CS_K8S_OWNER_ROLE_BINDING_NAME"]
+    owner_rolename = os.getenv("CS_K8S_OWNER_ROLE_NAME")
+    owner_rolebindingname = os.getenv("CS_K8S_OWNER_ROLE_BINDING_NAME")
 
     # create ns-specific role to enable access for user to its own namespace
     user_access_role = client.V1Role(
@@ -153,7 +155,7 @@ def ensure_additional_role_bindings(namespace, user):
     """
 
     # Create role bindings for configured cluster roles
-    clusterroles = list(config['CS_K8S_CLUSTERROLE_BINDINGS'].split(','))
+    clusterroles = list(os.getenv('CS_K8S_CLUSTERROLE_BINDINGS').split(','))
     for role in clusterroles:
         role_binding = client.V1RoleBinding(
             metadata=client.V1ObjectMeta(
@@ -212,10 +214,10 @@ def k8s_namespace_is_empty(namespace, checked_resources):
     list of resources to be checked.
     """
     ignore_lists = {
-        'ConfigMap': config['CS_K8S_PRUNING_IGNORE_CONFIGMAPS'],
-        'Secret': config['CS_K8S_PRUNING_IGNORE_SECRETS'],
-        'ServiceAccount': config['CS_K8S_PRUNING_IGNORE_SERVICEACCOUNTS'],
-        'RoleBinding': config['CS_K8S_PRUNING_IGNORE_ROLEBINDINGS'],
+        'ConfigMap': os.getenv('CS_K8S_PRUNING_IGNORE_CONFIGMAPS'),
+        'Secret': os.getenv('CS_K8S_PRUNING_IGNORE_SECRETS'),
+        'ServiceAccount': os.getenv('CS_K8S_PRUNING_IGNORE_SERVICEACCOUNTS'),
+        'RoleBinding': os.getenv('CS_K8S_PRUNING_IGNORE_ROLEBINDINGS'),
     }
 
     for resource in checked_resources:
@@ -244,17 +246,17 @@ def k8s_namespace_is_empty(namespace, checked_resources):
 while True:
     # Connect Keycloak
     logger.info("Connecting to Keycloak ...")
-    keycloak_connection = KeycloakOpenIDConnection(server_url=config['CS_KCK_SERVER'],
-                                                   realm_name=config['CS_KCK_REALM'],
-                                                   user_realm_name=config['CS_KCK_REALM'],
-                                                   client_id=config['CS_KCK_CLIENT_ID'],
-                                                   client_secret_key=config['CS_KCK_CLIENT_SECRET'],
+    keycloak_connection = KeycloakOpenIDConnection(server_url=os.getenv('CS_KCK_SERVER'),
+                                                   realm_name=os.getenv('CS_KCK_REALM'),
+                                                   user_realm_name=os.getenv('CS_KCK_REALM'),
+                                                   client_id=os.getenv('CS_KCK_CLIENT_ID'),
+                                                   client_secret_key=os.getenv('CS_KCK_CLIENT_SECRET'),
                                                    verify=True)
     keycloak_adm = KeycloakAdmin(connection=keycloak_connection)
 
     # Fetch Kubernetes users from Keycloak
     logger.info("Fetching users from Keycloak ...")
-    kck_users = list(kck_get_members(keycloak_adm, config['CS_KCK_GROUP_UUID']))
+    kck_users = list(kck_get_members(keycloak_adm, os.getenv('CS_KCK_GROUP_UUID')))
     logger.debug("Keycloak users: %s", list(kck_users))
 
     # Fetch Kubernetes namespaces
@@ -262,7 +264,7 @@ while True:
     k8s_namespaces = k8s_get_namespaces()
 
     # Compute the effective set of namespaces, based on restrictions
-    k8s_ns_ignore = config['CS_K8S_IGNORE_NAMESPACES'].split(',')
+    k8s_ns_ignore = os.getenv('CS_K8S_IGNORE_NAMESPACES', default='default,cert-manager,ingress-nginx').split(',')
     k8s_effective_ns = [ns for ns in k8s_namespaces if ns not in k8s_ns_ignore]
     logger.debug("Effective Kubernetes namespaces: %s", k8s_effective_ns)
 
@@ -278,15 +280,15 @@ while True:
     else:
         for kck_user in missing_in_k8s:
             logger.info("Keycloak user '%s' has no namespace, creating it.", kck_user)
-            k8s_create_namespace_for_user(kck_user, config['CS_K8S_USER_PREFIX'] + kck_user)
+            k8s_create_namespace_for_user(kck_user, k8s_user_prefix + kck_user)
 
     # Determine Kubernetes resource types to be considered
-    resources = list(k8s_get_resources(config['CS_K8S_PRUNING_IGNORE_RESOURCES'].split(',')))
+    resources = list(k8s_get_resources(os.getenv('CS_K8S_PRUNING_IGNORE_RESOURCES').split(',')))
 
     # Go through the list of namespaces that we should have a look upon
     logger.info("Checking namespaces for validity.")
-    pruning_check = config['CS_K8S_PRUNING_CHECK'].lower() in ("yes", "true", "t", "1")
-    pruning_delete = config['CS_K8S_PRUNING_DELETE'].lower() in ("yes", "true", "t", "1")
+    pruning_check = os.getenv('CS_K8S_PRUNING_CHECK').lower() in ("yes", "true", "t", "1")
+    pruning_delete = os.getenv('CS_K8S_PRUNING_DELETE').lower() in ("yes", "true", "t", "1")
     for ns in k8s_effective_ns:
         logger.debug("Checking namespace '%s' ...", ns)
         if ns in missing_ns_in_kck:
@@ -303,10 +305,10 @@ while True:
                     logger.info("  Namespace has resources and is not empty.")
         else:
             logger.debug("Namespace '%s' has a corresponding Keycloak user, checking for validity ...", ns)
-            ensure_owner_role_binding(ns, config['CS_K8S_USER_PREFIX'] + ns)
-            ensure_additional_role_bindings(ns, config['CS_K8S_USER_PREFIX'] + ns)
+            ensure_owner_role_binding(ns, k8s_user_prefix + ns)
+            ensure_additional_role_bindings(ns, k8s_user_prefix + ns)
 
     # Sleep until next run
-    sleep_time = int(config['CS_KCK_POLL_INTERVAL'])
+    sleep_time = int(os.getenv('CS_KCK_POLL_INTERVAL'))
     logger.debug("Waiting %u seconds for next check.", sleep_time)
     time.sleep(sleep_time)
