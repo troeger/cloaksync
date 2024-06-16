@@ -3,7 +3,7 @@ kind: Kustomization
 
 images:
 - name: troeger/cloaksync
-  newTag: v0.0.7
+  newTag: v0.0.8
 
 resources:
 - ./../base
