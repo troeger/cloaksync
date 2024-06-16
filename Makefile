@@ -1,5 +1,5 @@
 SHELL=/bin/bash
-VERSION=0.0.6
+VERSION=0.0.7
 
 # Update version numbers, commit and tag
 release-bumpversion:
