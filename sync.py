@@ -156,26 +156,28 @@ def ensure_additional_role_bindings(namespace, user):
 
     # Create role bindings for configured cluster roles
     clusterroles = list(os.getenv('CS_K8S_CLUSTERROLE_BINDINGS').split(','))
+    logger.debug('Checking cluster roles: %s', clusterroles)
     for role in clusterroles:
-        role_binding = client.V1RoleBinding(
-            metadata=client.V1ObjectMeta(
-                name=role,
-                namespace=namespace
-            ),
-            subjects=[
-                client.RbacV1Subject(
-                    name=user, kind="User", api_group="rbac.authorization.k8s.io"
-                )
-            ],
-            role_ref=client.V1RoleRef(
-                api_group="rbac.authorization.k8s.io", kind="ClusterRole", name=role
-            ),
-        )
-        if not role_binding_exists(role_binding):
-            logger.info("  Creating role binding for '%s' to '%s' ...", user, role)
-            policy_api.create_namespaced_role_binding(namespace=namespace, body=role_binding)
-        else:
-            logger.debug("  Role binding for '%s' to '%s' already exists.", user, role)
+        if role != '':
+            role_binding = client.V1RoleBinding(
+                metadata=client.V1ObjectMeta(
+                    name=role,
+                    namespace=namespace
+                ),
+                subjects=[
+                    client.RbacV1Subject(
+                        name=user, kind="User", api_group="rbac.authorization.k8s.io"
+                    )
+                ],
+                role_ref=client.V1RoleRef(
+                    api_group="rbac.authorization.k8s.io", kind="ClusterRole", name=role
+                ),
+            )
+            if not role_binding_exists(role_binding):
+                logger.info("  Creating role binding for '%s' to '%s' ...", user, role)
+                policy_api.create_namespaced_role_binding(namespace=namespace, body=role_binding)
+            else:
+                logger.debug("  Role binding for '%s' to '%s' already exists.", user, role)
 
 
 def k8s_create_namespace_for_user(namespace, user):

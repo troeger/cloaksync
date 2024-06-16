@@ -26,5 +26,4 @@ docker-run:
 	docker run --env-file .env troeger/cloaksync
 
 deploy:
-	cp .env deployment/k8s/production/.env
 	kubectl apply -k deployment/k8s/production 
