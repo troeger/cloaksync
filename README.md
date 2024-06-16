@@ -27,8 +27,8 @@ CloakSync is configured through environment variables. Please set them according
 
 | Environment variable | Description | Example | mandatory? |
 | -------------------- | ----------- | ------- | ---------- |
-| CS_LOG_LEVEL | Log level (DEBUG, INFO, WARN, ERROR, CRITICAL) | DEBUG | yes |
-| CS_KCK_POLL_INTERVAL | Polling interval in Keycloak, in seconds | 60 | yes |
+| CS_LOG_LEVEL | Log level (DEBUG, INFO, WARN, ERROR, CRITICAL) | DEBUG | no |
+| CS_KCK_POLL_INTERVAL | Polling interval in Keycloak, in seconds | 60 | no |
 | CS_KCK_SERVER  | Root URL of your Keycloak server |  https://auth.example.com | yes |
 | CS_KCK_REALM | Name of your Keycloak realm, f.e. | cluster | yes |
 | CS_KCK_CLIENT_ID | Client ID configured in Keycloak for the Kubernetes API server | admin-cli | yes |
@@ -36,11 +36,11 @@ CloakSync is configured through environment variables. Please set them according
 | CS_KCK_GROUP_UUID  | UUID of the Keycloak user group allowing Kubernetes access. The UUID can be obtained from the Keycloak URL of the group details.  | 123hvd65 | yes |
 | CS_K8S_CLUSTERROLE_BINDINGS  | Comma-separated list of ClusterRole names that should be enabled for Kubernetes users | no | no |
 | CS_K8S_USER_PREFIX | Prefix for user names in Kubernetes. Must match to the Kubernetes API server configuration | keycloak: | no |
-| CS_K8S_OWNER_ROLE_NAME | Name of the role generated for personal namespace access | namespace-owner | yes |
-| CS_K8S_OWNER_ROLE_BINDING_NAME | Name of the role generated for personal namespace access | namespace-owner | yes |
+| CS_K8S_OWNER_ROLE_NAME | Name of the role generated for personal namespace access | namespace-owner | no |
+| CS_K8S_OWNER_ROLE_BINDING_NAME | Name of the role generated for personal namespace access | namespace-owner | no |
 | CS_K8S_IGNORE_NAMESPACES | Comma-separated list of Kubernetes namespaces to be ignored | default,ingress-nginx,rook-ceph | no |
-| CS_K8S_PRUNING_CHECK | Should existing Kubernetes namespaces being checked for correct configuration? | yes | yes |
-| CS_K8S_PRUNING_DELETE  | Should Kubernetes namespaces with no resources be deleted? | no | yes |
+| CS_K8S_PRUNING_CHECK | Should existing Kubernetes namespaces being checked for correct configuration? | yes | no |
+| CS_K8S_PRUNING_DELETE  | Should Kubernetes namespaces with no resources be deleted? | no | no |
 | CS_K8S_PRUNING_IGNORE_CONFIGMAPS | Comma-separated list of ConfigMap resources to be ignored when CS_K8S_PRUNING_DELETE=true |  | no |
 | CS_K8S_PRUNING_IGNORE_SECRETS  | Comma-separated list of Secret resources to be ignored when CS_K8S_PRUNING_DELETE=true |  | no |
 | CS_K8S_PRUNING_IGNORE_SERVICEACCOUNTS  |  Comma-separated list of ServiceAccount resources to be ignored when CS_K8S_PRUNING_DELETE=true |  | no |
@@ -63,5 +63,9 @@ Follow the details in this [Medium article](https://medium.com/elmo-software/kub
 
 ## Kubernetes deployment of CloakSync
 
-- permissions
-- kustomize 
+Make a checkout of this Git repository. Create an `.env` file in `deployment/k8s/production/`, and add your tailored environment variables.
+You can use the file `.env-default` in the project root as example.
+
+When the file exists, call `kubectl apply -k deployment/k8s/production` to deploy the application with your configuration.
+
+
