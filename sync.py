@@ -156,7 +156,7 @@ def ensure_additional_role_bindings(namespace, user):
 
     # Create role bindings for configured cluster roles
     clusterroles = list(os.getenv('CS_K8S_CLUSTERROLE_BINDINGS').split(','))
-    logger.debug('Checking cluster roles: %s', clusterroles)
+    logger.debug('  Checking cluster roles: %s', clusterroles)
     for role in clusterroles:
         if role != '':
             role_binding = client.V1RoleBinding(
@@ -306,7 +306,7 @@ while True:
                 else:
                     logger.info("  Namespace has resources and is not empty.")
         else:
-            logger.debug("Namespace '%s' has a corresponding Keycloak user, checking for validity ...", ns)
+            logger.info("Namespace '%s' has a corresponding Keycloak user, checking for validity ...", ns)
             ensure_owner_role_binding(ns, k8s_user_prefix + ns)
             ensure_additional_role_bindings(ns, k8s_user_prefix + ns)
 
