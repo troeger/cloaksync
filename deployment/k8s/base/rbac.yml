@@ -10,11 +10,11 @@ rules:
 # Allow security configuration for namespace. Mandatory.
 - apiGroups: ["rbac.authorization.k8s.io"]
   resources: ["rolebindings", "roles"]
-  verbs: ["get","list","create"]
+  verbs: ["get","list","create", "escalate", "bind"]
 # Allow additional binding of cluster roles. Optional.
 - apiGroups: ["rbac.authorization.k8s.io"]
   resources: ["clusterroles"]
-  verbs: ["bind"]
+  verbs: ["bind", "escalate"]
 # Allow check for empty namespaces. Optional. 
 - apiGroups: ["", "apps", "networking.k8s.io"]
   resources: ["*"]
