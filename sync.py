@@ -39,14 +39,40 @@ k8s_dynamic_client = dynamic.DynamicClient(client.api_client.ApiClient())
 policy_api = client.RbacAuthorizationV1Api()
 
 
-def kck_get_members(keycloak_admin, group_uuid):
+def _kck_recurse_group_names_with_role(group_obj, role_name):
+    names = []
+    if 'realmRoles' in group_obj and role_name in group_obj['realmRoles']:
+        names.append(group_obj['id'])
+    for sub_group in group_obj.get('subGroups', []):
+        names.extend(_kck_recurse_group_names_with_role(sub_group, role_name))  
+    return names
+
+
+def _kck_get_groups_with_role(keycloak_admin, role_name):
+    groups = keycloak_admin.get_groups(full_hierarchy=True)
+    result = []
+    for group in groups:
+        result.extend(_kck_recurse_group_names_with_role(group, role_name))
+    return result
+
+
+def kck_get_role_members(keycloak_admin, role_name):
+    """
+    Gets the members of a Keycloak role.
+    """
+    group_ids = _kck_get_groups_with_role(keycloak_admin, role_name)
+    for group_id in group_ids:
+        yield from kck_get_group_members(keycloak_admin, group_id)
+
+
+def kck_get_group_members(keycloak_admin, group_uuid):
     """
     Gets the members of a Keycloak group recursively, including sub-group members.
     """
     group = keycloak_admin.get_group(group_uuid)
     if group['subGroupCount'] > 0:
         for subgroup in group['subGroups']:
-            yield from kck_get_members(keycloak_admin, subgroup['id'])
+            yield from kck_get_group_members(keycloak_admin, subgroup['id'])
 
     group_members = keycloak_admin.get_group_members(group_uuid, query={'briefRepresentation': 'true'})
     for member in group_members:
@@ -258,8 +284,12 @@ while True:
 
     # Fetch Kubernetes users from Keycloak
     logger.info("Fetching users from Keycloak ...")
-    kck_users = list(kck_get_members(keycloak_adm, os.getenv('CS_KCK_GROUP_UUID')))
-    logger.debug("Keycloak users: %s", list(kck_users))
+    kck_users = list(kck_get_group_members(keycloak_adm, os.getenv('CS_KCK_GROUP_UUID')))
+    logger.debug("Keycloak group users: %s", list(kck_users))
+    kck_role_users = list(kck_get_role_members(keycloak_adm, os.getenv('CS_KCK_ROLE_NAME')))
+    logger.debug("Keycloak role users: %s", list(kck_role_users))
+    kck_users.extend(x for x in kck_role_users if x not in kck_users)
+    logger.debug("Keycloak users being relevant: %s", list(kck_users))
 
     # Fetch Kubernetes namespaces
     logger.info("Fetching namespaces from Kubernetes ...")

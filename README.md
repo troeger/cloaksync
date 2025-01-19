@@ -33,7 +33,8 @@ CloakSync is configured through environment variables. Please set them according
 | CS_KCK_REALM | Name of your Keycloak realm, f.e. | cluster | yes |
 | CS_KCK_CLIENT_ID | Client ID configured in Keycloak for the Kubernetes API server | admin-cli | yes |
 | CS_KCK_CLIENT_SECRET | Client Secret configured in Keycloak for the Kubernetes API server | abc123 | yes |
-| CS_KCK_GROUP_UUID  | UUID of the Keycloak user group allowing Kubernetes access. The UUID can be obtained from the Keycloak URL of the group details.  | 123hvd65 | yes |
+| CS_KCK_GROUP_UUID  | UUID of the Keycloak user group allowing Kubernetes access. The UUID can be obtained from the Keycloak URL of the group details. The group can be a parent group for other groups, users are collected recursively. | 123hvd65 | yes |
+| CS_KCK_ROLE_NAME | The name of a role allowing Kubernetes access. The resulting user accounts from this setting and CS_KCK_GROUP_UUID are combined. The role must be directly assigned to the group, and not only being inherited from a parent group. | k8s-user | yes |
 | CS_K8S_CLUSTERROLE_BINDINGS  | Comma-separated list of ClusterRole names that should be enabled for Kubernetes users | no | no |
 | CS_K8S_USER_PREFIX | Prefix for user names in Kubernetes. Must match to the Kubernetes API server configuration | keycloak: | no |
 | CS_K8S_OWNER_ROLE_NAME | Name of the role generated for personal namespace access | namespace-owner | no |
