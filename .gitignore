@@ -5,3 +5,6 @@ deployment/k8s/production/.env
 # draw.io temporary files
 .$*.drawio.bkp
 .$*.drawio.dtmp
+
+# Notes
+TODO.md
