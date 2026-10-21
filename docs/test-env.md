@@ -14,7 +14,7 @@ Docker and minikube. Each minikube release supports a range of Kubernetes versio
 minikube start -p cloaksync-test --keep-context --driver=docker --kubernetes-version=v1.35.7
 ```
 
-- `-p cloaksync-test` names the minikube profile. The profile name is also the name of the kube context, which the commands below use.
+- `-p cloaksync-test` names the minikube profile. The profile name is also the name of the kube context, which the commands below use (see [Minikube](background/minikube.md)).
 - `--keep-context` stops minikube from changing your current kube context.
 - `--driver=docker` runs the cluster in a Docker container (see [Minikube Runs with the Docker Driver](#minikube-runs-with-the-docker-driver)).
 - `--kubernetes-version` should be the production Kubernetes version (see [Versions Match Production](#versions-match-production)).
