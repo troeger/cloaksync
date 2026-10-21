@@ -1,12 +1,12 @@
 # Test Environment
 
-The test environment is a local copy of our setup in minikube. We use it to test upgrades of Keycloak to the latest version, and other changes that we do not want to try on the real cluster first.
+The test environment is a local Kubernetes cluster in minikube. It tries to match our production cluster so that it (hopefully) behaves similarly. In that way, we can use it to test changes before running them on the real cluster.
 
 ## Setup
 
 ### Prerequisites
 
-Docker and minikube. Each minikube release supports a range of Kubernetes versions, and the start command below selects one, so the minikube version does not have to match exactly.
+Docker and minikube. Each minikube release supports a range of Kubernetes versions, and the start command below selects one, so the locally installed minikube version does not have to match the cluster exactly.
 
 ### Start the Cluster
 
