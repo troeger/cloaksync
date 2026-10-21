@@ -66,6 +66,7 @@ These steps put the cluster back to the state before the first run of CloakSync.
 
 ```bash
 kubectl --context cloaksync-test -n cloaksync-test scale deploy/cloaksync-test --replicas=0
+kubectl --context cloaksync-test -n cloaksync-test wait --for=delete pod -l app.kubernetes.io/name=cloaksync --timeout=60s
 kubectl --context cloaksync-test delete namespace alice bob carol dave --ignore-not-found
 kubectl --context cloaksync-test -n keycloak-test rollout restart deploy/keycloak
 kubectl --context cloaksync-test -n keycloak-test rollout status deploy/keycloak
@@ -74,7 +75,7 @@ kubectl --context cloaksync-test -n cloaksync-test rollout status deploy/cloaksy
 kubectl --context cloaksync-test -n cloaksync-test logs -f deploy/cloaksync-test
 ```
 
-The delete of a namespace also deletes the roles and role bindings in it. kubectl waits until the namespaces are gone.
+CloakSync ignores the stop signal, so its pod stops only when Kubernetes kills it after 30 seconds. The wait makes sure that it cannot create the namespaces again after the delete. The delete of a namespace also deletes the roles and role bindings in it. kubectl waits until the namespaces are gone.
 
 ### Remove the Cluster
 
