@@ -26,6 +26,12 @@ kubectl --context cloaksync-test apply -k deployment/k8s/test/keycloak
 kubectl --context cloaksync-test -n keycloak-test rollout status deploy/keycloak
 ```
 
+If the rollout status does not finish, Keycloak did not start. Its log shows why, for example a realm import that failed:
+
+```bash
+kubectl --context cloaksync-test -n keycloak-test logs deploy/keycloak
+```
+
 At startup, Keycloak imports the realm `cluster` from [realm-cluster.json](../deployment/k8s/test/keycloak/realm-cluster.json). The admin console is at <http://localhost:8080/admin>. The user and the password are both `admin`. It is available through a port-forward:
 
 ```bash
@@ -41,6 +47,12 @@ kubectl --context cloaksync-test -n cloaksync-test logs -f deploy/cloaksync-test
 
 The configuration is in [cloaksync.env](../deployment/k8s/test/cloaksync/cloaksync.env). It contains only test values that match the realm import. CloakSync connects to Keycloak over plain HTTP through the Service in the cluster. After the first run `kubectl --context cloaksync-test get namespaces` shows a namespace for each user who gets one.
 
+CloakSync reads its configuration only when the pod starts. The ConfigMap keeps its name when cloaksync.env changes, so an apply does not restart the pod. After you change the configuration, apply and then restart CloakSync:
+
+```bash
+kubectl --context cloaksync-test -n cloaksync-test rollout restart deploy/cloaksync-test
+```
+
 ### Rebuild from Scratch
 
 Keycloak keeps its data inside the container. A restart of the pod resets the realm to the import file:
@@ -54,6 +66,19 @@ To remove the whole cluster:
 ```bash
 minikube delete -p cloaksync-test
 ```
+
+## Test Users
+
+The realm has one test user for each way a user can get a namespace, and one who gets none:
+
+| User  | Group                     | Tests                                                         | Namespace |
+|-------|---------------------------|---------------------------------------------------------------|-----------|
+| alice | `k8s-users`               | direct member of the group `CS_KCK_GROUP_UUID`                | yes       |
+| bob   | `k8s-users/k8s-users-sub` | member of a subgroup                                          | yes       |
+| carol | `k8s-role-group`          | member of a group with the realm role `CS_KCK_ROLE_NAME`      | yes       |
+| dave  | `no-access`               | in neither                                                    | no        |
+
+The group `k8s-users` has a fixed UUID in the import, so `CS_KCK_GROUP_UUID` stays valid after each import. The user `service-account-admin-cli` is not a test user. Keycloak creates it for the client `admin-cli`, and CloakSync logs in as it.
 
 ## Login Through OIDC Is Not Set up Yet
 

@@ -32,5 +32,5 @@ deploy:
 # because its ConfigMap would contain the values of its .env file.
 render-test:
 	mkdir -p deployment/k8s/rendered
-	kubectl kustomize deployment/k8s/test/cloaksync > deployment/k8s/rendered/test-cloaksync.yaml
-	kubectl kustomize deployment/k8s/test/keycloak > deployment/k8s/rendered/test-keycloak.yaml
+	kubectl kustomize deployment/k8s/test/cloaksync > deployment/k8s/rendered/rendered-test-cloaksync.yaml
+	kubectl kustomize deployment/k8s/test/keycloak > deployment/k8s/rendered/rendered-test-keycloak.yaml
