@@ -32,11 +32,14 @@ If the rollout status does not finish, Keycloak did not start. Its log shows why
 kubectl --context cloaksync-test -n keycloak-test logs deploy/keycloak
 ```
 
-At startup, Keycloak imports the realm `cluster` from [realm-cluster.json](../deployment/k8s/test/keycloak/realm-cluster.json). The admin console is at <http://localhost:8080/admin>. The user and the password are both `admin`. It is available through a port-forward:
+At startup, Keycloak imports the realm `cluster` from [realm-cluster.json](../deployment/k8s/test/keycloak/realm-cluster.json). Its web consoles are available through a port-forward:
 
 ```bash
 kubectl --context cloaksync-test -n keycloak-test port-forward svc/keycloak 8080:8080
 ```
+
+- The admin console is at <http://localhost:8080/admin>. The user and the password are both `admin`. Here you see and change the users, groups and roles of the realm.
+- The account console is at <http://localhost:8080/realms/cluster/account>. Here a test user logs in with the password from the realm import.
 
 ### Deploy CloakSync
 
@@ -53,19 +56,33 @@ CloakSync reads its configuration only when the pod starts. The ConfigMap keeps 
 kubectl --context cloaksync-test -n cloaksync-test rollout restart deploy/cloaksync-test
 ```
 
-### Rebuild from Scratch
+## Reset
 
-Keycloak keeps its data inside the container. A restart of the pod resets the realm to the import file:
+The test environment keeps its state in two places. Keycloak keeps its users, groups and roles inside its container, so a new Keycloak pod imports the realm again. The namespaces, roles and role bindings that CloakSync creates are objects in the cluster. They stay when the pods restart and when minikube stops. Only a delete removes them.
+
+### Reset Keycloak and the Namespaces
+
+These steps put the cluster back to the state before the first run of CloakSync. CloakSync stops first, so it cannot create the namespaces again during the reset. It starts again only after the namespaces are gone and Keycloak is ready, so its log shows a first run.
 
 ```bash
+kubectl --context cloaksync-test -n cloaksync-test scale deploy/cloaksync-test --replicas=0
+kubectl --context cloaksync-test delete namespace alice bob carol dave --ignore-not-found
 kubectl --context cloaksync-test -n keycloak-test rollout restart deploy/keycloak
+kubectl --context cloaksync-test -n keycloak-test rollout status deploy/keycloak
+kubectl --context cloaksync-test -n cloaksync-test scale deploy/cloaksync-test --replicas=1
+kubectl --context cloaksync-test -n cloaksync-test rollout status deploy/cloaksync-test
+kubectl --context cloaksync-test -n cloaksync-test logs -f deploy/cloaksync-test
 ```
 
-To remove the whole cluster:
+The delete of a namespace also deletes the roles and role bindings in it. kubectl waits until the namespaces are gone.
+
+### Remove the Cluster
 
 ```bash
 minikube delete -p cloaksync-test
 ```
+
+After that, start again at [Setup](#setup).
 
 ## Test Users
 
