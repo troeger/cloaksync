@@ -57,7 +57,8 @@
       "firstName": "Alice",
       "lastName": "Test",
       "credentials": [{ "type": "password", "value": "alice", "temporary": false }],
-      "groups": ["/k8s-users"]
+      "groups": ["/k8s-users"],
+      "realmRoles": ["default-roles-cluster"]
     },
     {
       "username": "bob",
@@ -67,7 +68,8 @@
       "firstName": "Bob",
       "lastName": "Test",
       "credentials": [{ "type": "password", "value": "bob", "temporary": false }],
-      "groups": ["/k8s-users/k8s-users-sub"]
+      "groups": ["/k8s-users/k8s-users-sub"],
+      "realmRoles": ["default-roles-cluster"]
     },
     {
       "username": "carol",
@@ -77,7 +79,8 @@
       "firstName": "Carol",
       "lastName": "Test",
       "credentials": [{ "type": "password", "value": "carol", "temporary": false }],
-      "groups": ["/k8s-role-group"]
+      "groups": ["/k8s-role-group"],
+      "realmRoles": ["default-roles-cluster"]
     },
     {
       "username": "dave",
@@ -87,7 +90,8 @@
       "firstName": "Dave",
       "lastName": "Test",
       "credentials": [{ "type": "password", "value": "dave", "temporary": false }],
-      "groups": ["/no-access"]
+      "groups": ["/no-access"],
+      "realmRoles": ["default-roles-cluster"]
     }
   ]
 }
