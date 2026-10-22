@@ -137,7 +137,7 @@ kubectl --context <prod-context> get nodes -o wide
 
 The first command shows the API server version in the line "Server Version". The second shows the kubelet version of each node.
 
-The test environment uses Keycloak 26.8.1 with the image `quay.io/keycloak/keycloak:26.8.1` until the production version is known.
+Production runs Keycloak 26.3.2. The test environment uses the image `quay.io/keycloak/keycloak:26.3.2`.
 
 ### Commands Name Their Context
 
