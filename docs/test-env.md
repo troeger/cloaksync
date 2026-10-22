@@ -62,7 +62,7 @@ The test environment keeps its state in two places. Keycloak keeps its users, gr
 
 ### Reset Keycloak and the Namespaces
 
-These steps put the cluster back to the state before the first run of CloakSync. CloakSync stops first, so it cannot create the namespaces again during the reset. It starts again only after the namespaces are gone and Keycloak is ready, so its log shows a first run.
+These steps put the cluster back to the state before the first run of CloakSync. CloakSync stops first, so it cannot create the namespaces again during the reset. It stays stopped after the reset. To start it again, follow [Deploy CloakSync](#deploy-cloaksync). The manifest sets one replica, so the apply starts the pod again, and its log shows a first run.
 
 ```bash
 kubectl --context cloaksync-test -n cloaksync-test scale deploy/cloaksync-test --replicas=0
@@ -70,12 +70,11 @@ kubectl --context cloaksync-test -n cloaksync-test wait --for=delete pod -l app.
 kubectl --context cloaksync-test delete namespace alice bob carol dave --ignore-not-found
 kubectl --context cloaksync-test -n keycloak-test rollout restart deploy/keycloak
 kubectl --context cloaksync-test -n keycloak-test rollout status deploy/keycloak
-kubectl --context cloaksync-test -n cloaksync-test scale deploy/cloaksync-test --replicas=1
-kubectl --context cloaksync-test -n cloaksync-test rollout status deploy/cloaksync-test
-kubectl --context cloaksync-test -n cloaksync-test logs -f deploy/cloaksync-test
 ```
 
 CloakSync ignores the stop signal, so its pod stops only when Kubernetes kills it after 30 seconds. The wait makes sure that it cannot create the namespaces again after the delete. The delete of a namespace also deletes the roles and role bindings in it. kubectl waits until the namespaces are gone.
+
+The reset is a temporary solution. The delete lists the namespaces by hand. The list must match the test users in [realm-cluster.json](../deployment/k8s/test/keycloak/realm-cluster.json) who get a namespace. When you add or remove such a user, change the list too.
 
 ### Remove the Cluster
 
