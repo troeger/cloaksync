@@ -1,3 +1,11 @@
 venv
 .env
 deployment/k8s/production/.env
+deployment/k8s/rendered/
+
+# draw.io temporary files
+.$*.drawio.bkp
+.$*.drawio.dtmp
+
+# Notes
+TODO.md

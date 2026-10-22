@@ -17,6 +17,10 @@ You want to use this deaemon if:
 CloakSync can be used as light-weight alternative for Rancher and other full-fledged
 solutions with identity provider support. 
 
+## Documentation
+
+[Overview](docs/overview.md) explains what CloakSync does and how it fits together with Keycloak and Kubernetes.
+
 ## Installation
 
 CloakSync is expected to be deployed on the target Kubernetes cluster. The folder `deployment` contains all necccessary information.

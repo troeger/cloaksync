@@ -1,0 +1,97 @@
+{
+  "realm": "cluster",
+  "enabled": true,
+  "roles": {
+    "realm": [
+      {
+        "name": "k8s-user",
+        "description": "Members of groups with this role get a namespace from CloakSync"
+      }
+    ]
+  },
+  "groups": [
+    {
+      "id": "755673fd-b62b-4062-bf04-323e3149efff",
+      "name": "k8s-users",
+      "subGroups": [
+        {
+          "name": "k8s-users-sub"
+        }
+      ]
+    },
+    {
+      "name": "k8s-role-group",
+      "realmRoles": ["k8s-user"]
+    },
+    {
+      "name": "no-access"
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "admin-cli",
+      "name": "${client_admin-cli}",
+      "enabled": true,
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "cloaksync-test-secret",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": true
+    }
+  ],
+  "users": [
+    {
+      "username": "service-account-admin-cli",
+      "enabled": true,
+      "serviceAccountClientId": "admin-cli",
+      "clientRoles": {
+        "realm-management": ["realm-admin"]
+      }
+    },
+    {
+      "username": "alice",
+      "enabled": true,
+      "email": "alice@example.test",
+      "emailVerified": true,
+      "firstName": "Alice",
+      "lastName": "Test",
+      "credentials": [{ "type": "password", "value": "alice", "temporary": false }],
+      "groups": ["/k8s-users"],
+      "realmRoles": ["default-roles-cluster"]
+    },
+    {
+      "username": "bob",
+      "enabled": true,
+      "email": "bob@example.test",
+      "emailVerified": true,
+      "firstName": "Bob",
+      "lastName": "Test",
+      "credentials": [{ "type": "password", "value": "bob", "temporary": false }],
+      "groups": ["/k8s-users/k8s-users-sub"],
+      "realmRoles": ["default-roles-cluster"]
+    },
+    {
+      "username": "carol",
+      "enabled": true,
+      "email": "carol@example.test",
+      "emailVerified": true,
+      "firstName": "Carol",
+      "lastName": "Test",
+      "credentials": [{ "type": "password", "value": "carol", "temporary": false }],
+      "groups": ["/k8s-role-group"],
+      "realmRoles": ["default-roles-cluster"]
+    },
+    {
+      "username": "dave",
+      "enabled": true,
+      "email": "dave@example.test",
+      "emailVerified": true,
+      "firstName": "Dave",
+      "lastName": "Test",
+      "credentials": [{ "type": "password", "value": "dave", "temporary": false }],
+      "groups": ["/no-access"],
+      "realmRoles": ["default-roles-cluster"]
+    }
+  ]
+}
