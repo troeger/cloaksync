@@ -27,3 +27,10 @@ docker-run:
 
 deploy:
 	kubectl apply -k deployment/k8s/production 
+
+# Renders the test kustomizations for review. Production is left out,
+# because its ConfigMap would contain the values of its .env file.
+render-test:
+	mkdir -p deployment/k8s/rendered
+	kubectl kustomize deployment/k8s/test/cloaksync > deployment/k8s/rendered/rendered-test-cloaksync.yaml
+	kubectl kustomize deployment/k8s/test/keycloak > deployment/k8s/rendered/rendered-test-keycloak.yaml
