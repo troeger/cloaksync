@@ -27,3 +27,6 @@ docker-run:
 
 deploy:
 	kubectl apply -k deployment/k8s/production 
+
+test:
+	venv/bin/python -m unittest discover -s tests
