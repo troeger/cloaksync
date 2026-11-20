@@ -157,8 +157,8 @@ def decide(facts: NamespaceFacts, settings: ExpirySettings, now: datetime) -> De
     reminder_days = next_due_reminder(facts, settings, namespace_deadline, now)
 
     if status is Status.ACTIVE and facts.suspended:
-        # Before the deadline, but still suspended: the user extended during
-        # the suspension period.
+        # The user extended during the suspension period: the new deadline is in
+        # the future, but the namespace is still suspended.
         decision = Decision(
             namespace_deadline,
             status,

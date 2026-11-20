@@ -47,8 +47,8 @@ CloakSync is configured through environment variables. Please set them according
 | CS_K8S_PRUNING_IGNORE_SERVICEACCOUNTS  |  Comma-separated list of ServiceAccount resources to be ignored when CS_K8S_PRUNING_DELETE=true |  | no |
 | CS_K8S_PRUNING_IGNORE_ROLEBINDINGS | Comma-separated list of RoleBinding resources to be ignored when CS_K8S_PRUNING_DELETE=true |  | no |
 | CS_K8S_PRUNING_IGNORE_RESOURCES  | Comma-separated list of Resource resources to be ignored when CS_K8S_PRUNING_DELETE=true |  | no |
-| CS_EXPIRY_CHECK | Check each namespace for expiry and log the resulting action. The actions are not implemented yet, so nothing is changed. | true | no |
-| CS_EXPIRY_EXTENSION_DAYS | Days a namespace is kept after its creation or its last extension | 90 | no |
+| CS_EXPIRY_CHECK | Check each namespace for expiry and log the resulting action. The actions are not implemented yet, so nothing is changed. | false | no |
+| CS_EXPIRY_EXTENSION_DAYS | Days a namespace is kept after its creation or its last extension | 150 | no |
 | CS_EXPIRY_SUSPENSION_DAYS | Days a namespace stays suspended before it is deleted | 30 | no |
 | CS_EXPIRY_REMINDER_DAYS | Comma-separated list of days before the deadline at which a reminder is due | 30,7,1 | no |
 

@@ -308,11 +308,11 @@ def ensure_expiry_configmap(namespace: str) -> None:
     """
     try:
         k8s_core_api.read_namespaced_config_map(EXPIRY_CONFIGMAP_NAME, namespace)
-        logger.debug("  Expiry ConfigMap '%s' already exists.", EXPIRY_CONFIGMAP_NAME)
+        logger.debug("  Expiry: ConfigMap '%s' already exists.", EXPIRY_CONFIGMAP_NAME)
     except ApiException as e:
         if e.status != 404:
             raise
-        logger.info("  Would create expiry ConfigMap '%s' (not implemented).", EXPIRY_CONFIGMAP_NAME)
+        logger.info("  Expiry: would create ConfigMap '%s' (not implemented).", EXPIRY_CONFIGMAP_NAME)
 
 
 def run_expiry_action(namespace: str, decision: Decision) -> None:
@@ -324,18 +324,18 @@ def run_expiry_action(namespace: str, decision: Decision) -> None:
             logger.debug("  Expiry: nothing to do.")
         case Action.SEND_REMINDER:
             if decision.moves_deadline:
-                logger.info("  Would move the deadline to %s, the reminder is late (not implemented).",
+                logger.info("  Expiry: would move the deadline to %s, the reminder is late (not implemented).",
                             decision.deadline.date())
-            logger.info("  Would send the %u-day reminder to '%s' (not implemented).",
+            logger.info("  Expiry: would send the %u-day reminder to '%s' (not implemented).",
                         decision.reminder_days, namespace)
         case Action.SUSPEND:
-            logger.info("  Would suspend the namespace (not implemented).")
+            logger.info("  Expiry: would suspend the namespace (not implemented).")
         case Action.RESTORE:
-            logger.info("  Would restore the namespace (not implemented).")
+            logger.info("  Expiry: would restore the namespace (not implemented).")
         case Action.DELETE:
-            logger.info("  Would delete the namespace (not implemented).")
+            logger.info("  Expiry: would delete the namespace (not implemented).")
         case Action.ADMIN_REVIEW:
-            logger.info("  Would report the namespace for admin review: %s (not implemented).", decision.reason)
+            logger.info("  Expiry: would report the namespace for admin review: %s (not implemented).", decision.reason)
 
 
 def check_namespace_expiry(namespace: str, created_at: datetime, has_owner: bool,
@@ -444,7 +444,7 @@ while True:
                                        keycloak_adm, expiry_settings, now)
             except Exception:
                 # A failing expiry check must not stop the sync of the other namespaces.
-                logger.exception("  Expiry check failed for namespace '%s'.", ns)
+                logger.exception("  Expiry: check failed for namespace '%s'.", ns)
 
     # Sleep until next run
     sleep_time = int(os.getenv('CS_KCK_POLL_INTERVAL'))
