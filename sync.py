@@ -416,9 +416,14 @@ while True:
     pruning_delete = os.getenv('CS_K8S_PRUNING_DELETE').lower() in ("yes", "true", "t", "1")
     expiry_check = os.getenv('CS_EXPIRY_CHECK').lower() in ("yes", "true", "t", "1")
     if expiry_check:
-        expiry_settings = expiry_load_settings()
-        namespace_creation_times = k8s_get_namespace_creation_times()
-        now = datetime.now(timezone.utc)
+        try:
+            expiry_settings = expiry_load_settings()
+            namespace_creation_times = k8s_get_namespace_creation_times()
+            now = datetime.now(timezone.utc)
+        except Exception:
+            # A failing expiry setup must not stop the sync of the namespaces.
+            logger.exception("Expiry: setup failed, skipping the expiry check in this run.")
+            expiry_check = False
     for ns in k8s_effective_ns:
         logger.debug("Checking namespace '%s' ...", ns)
         if ns in missing_ns_in_kck:
