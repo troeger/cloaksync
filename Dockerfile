@@ -7,7 +7,7 @@ RUN apk add build-base libffi-dev && \
     apk del build-base && \
     mkdir /code/
 
-COPY sync.py /code/
+COPY sync.py namespace_expiry.py /code/
 COPY .env.default /code/.env
 
 CMD ["python", "/code/sync.py"]

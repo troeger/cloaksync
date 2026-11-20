@@ -19,6 +19,9 @@ venv:
 run:
 	venv/bin/python sync.py
 
+test:
+	venv/bin/python -m unittest discover -s tests
+
 docker:
 	docker build . -t troeger/cloaksync
 
