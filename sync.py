@@ -2,12 +2,15 @@ import logging
 import urllib3
 import time
 import os
+from datetime import datetime, timezone
 from keycloak import KeycloakAdmin
 from keycloak import KeycloakOpenIDConnection
 from kubernetes import client, config as k8s_config, dynamic
 from kubernetes.client.rest import ApiException
 from kubernetes.dynamic.resource import ResourceList
 from dotenv import load_dotenv
+
+from namespace_expiry import Action, Decision, ExpirySettings, NamespaceFacts, decide
 
 # disable kubernetes requests API
 urllib3.disable_warnings()
@@ -37,6 +40,8 @@ k8s_net_api = client.NetworkingV1Api()
 k8s_custom_api = client.CustomObjectsApi()
 k8s_dynamic_client = dynamic.DynamicClient(client.api_client.ApiClient())
 policy_api = client.RbacAuthorizationV1Api()
+
+EXPIRY_CONFIGMAP_NAME = "namespace-expiry"
 
 
 def _kck_recurse_group_names_with_role(group_obj, role_name):
@@ -139,10 +144,10 @@ def ensure_owner_role_binding(namespace, user):
         ),
         rules=[
             client.V1PolicyRule(
-                [""], resources=["*"], verbs=["*"]
+                api_groups=[""], resources=["*"], verbs=["*"]
             ),
             client.V1PolicyRule(
-                ["extensions"], resources=["*"], verbs=["*"]
+                api_groups=["extensions"], resources=["*"], verbs=["*"]
             )
         ],
     )
@@ -268,6 +273,94 @@ def k8s_namespace_is_empty(namespace, checked_resources):
                 return False
     return True
 
+
+def expiry_load_settings() -> ExpirySettings:
+    """
+    Loads the namespace expiry settings from the environment.
+    """
+    reminder_days = os.getenv('CS_EXPIRY_REMINDER_DAYS').split(',')
+    return ExpirySettings(
+        extension_days=int(os.getenv('CS_EXPIRY_EXTENSION_DAYS')),
+        suspension_days=int(os.getenv('CS_EXPIRY_SUSPENSION_DAYS')),
+        reminder_days=tuple(int(days) for days in reminder_days if days.strip()),
+    )
+
+
+def k8s_get_namespace_creation_times() -> dict[str, datetime]:
+    """
+    Gets the creation time of every namespace, by namespace name.
+    """
+    ret = k8s_core_api.list_namespace(watch=False)
+    return {item.metadata.name: item.metadata.creation_timestamp for item in ret.items}
+
+
+def kck_user_has_email(keycloak_admin: KeycloakAdmin, username: str) -> bool:
+    """
+    Checks if the Keycloak user has an email address.
+    """
+    users = keycloak_admin.get_users(query={'username': username, 'exact': True, 'max': 1})
+    return bool(users and users[0].get('email'))
+
+
+def ensure_expiry_configmap(namespace: str) -> None:
+    """
+    Ensures that the namespace has the ConfigMap that users label to extend it.
+    """
+    try:
+        k8s_core_api.read_namespaced_config_map(EXPIRY_CONFIGMAP_NAME, namespace)
+        logger.debug("  Expiry: ConfigMap '%s' already exists.", EXPIRY_CONFIGMAP_NAME)
+    except ApiException as e:
+        if e.status != 404:
+            raise
+        logger.info("  Expiry: would create ConfigMap '%s' (not implemented).", EXPIRY_CONFIGMAP_NAME)
+
+
+def run_expiry_action(namespace: str, decision: Decision) -> None:
+    """
+    Carries out the expiry decision for a namespace.
+    """
+    match decision.action:
+        case Action.NONE:
+            logger.debug("  Expiry: nothing to do.")
+        case Action.SEND_REMINDER:
+            if decision.moves_deadline:
+                logger.info("  Expiry: would move the deadline to %s, the reminder is late (not implemented).",
+                            decision.deadline.date())
+            logger.info("  Expiry: would send the %u-day reminder to '%s' (not implemented).",
+                        decision.reminder_days, namespace)
+        case Action.SUSPEND:
+            logger.info("  Expiry: would suspend the namespace (not implemented).")
+        case Action.RESTORE:
+            logger.info("  Expiry: would restore the namespace (not implemented).")
+        case Action.DELETE:
+            logger.info("  Expiry: would delete the namespace (not implemented).")
+        case Action.ADMIN_REVIEW:
+            logger.info("  Expiry: would report the namespace for admin review: %s (not implemented).", decision.reason)
+
+
+def check_namespace_expiry(namespace: str, created_at: datetime, has_owner: bool,
+                           keycloak_admin: KeycloakAdmin, settings: ExpirySettings, now: datetime) -> None:
+    """
+    Decides what namespace expiry does for the given namespace, and does it.
+    """
+    ensure_expiry_configmap(namespace)
+    # The namespace name is the Keycloak username of its owner.
+    email_known = has_owner and kck_user_has_email(keycloak_admin, namespace)
+    # There is no stored state yet: nobody has extended, no reminder went out
+    # and no deadline was moved.
+    facts = NamespaceFacts(
+        name=namespace,
+        created_at=created_at,
+        last_extension_at=None,
+        last_reminder_at=None,
+        moved_deadline=None,
+        owner_email_known=email_known,
+        suspended=False,
+    )
+    decision = decide(facts, settings, now)
+    logger.info("  Expiry: deadline %s, status %s.", decision.deadline.date(), decision.status.value)
+    run_expiry_action(namespace, decision)
+
 ###
 
 
@@ -321,6 +414,16 @@ while True:
     logger.info("Checking namespaces for validity.")
     pruning_check = os.getenv('CS_K8S_PRUNING_CHECK').lower() in ("yes", "true", "t", "1")
     pruning_delete = os.getenv('CS_K8S_PRUNING_DELETE').lower() in ("yes", "true", "t", "1")
+    expiry_check = os.getenv('CS_EXPIRY_CHECK').lower() in ("yes", "true", "t", "1")
+    if expiry_check:
+        try:
+            expiry_settings = expiry_load_settings()
+            namespace_creation_times = k8s_get_namespace_creation_times()
+            now = datetime.now(timezone.utc)
+        except Exception:
+            # A failing expiry setup must not stop the sync of the namespaces.
+            logger.exception("Expiry: setup failed, skipping the expiry check in this run.")
+            expiry_check = False
     for ns in k8s_effective_ns:
         logger.debug("Checking namespace '%s' ...", ns)
         if ns in missing_ns_in_kck:
@@ -330,7 +433,7 @@ while True:
                 if k8s_namespace_is_empty(ns, resources):
                     logger.info("  Namespace is empty.")
                     if pruning_delete:
-                        logger.info("  Deleting empty namespace.")
+                        logger.info("  Would delete the empty namespace (not implemented).")
                     else:
                         logger.info("  Deletion of empty namespaces is disabled, not touching it.")
                 else:
@@ -339,6 +442,14 @@ while True:
             logger.info("Namespace '%s' has a corresponding Keycloak user, checking for validity ...", ns)
             ensure_owner_role_binding(ns, k8s_user_prefix + ns)
             ensure_additional_role_bindings(ns, k8s_user_prefix + ns)
+
+        if expiry_check and ns in namespace_creation_times:
+            try:
+                check_namespace_expiry(ns, namespace_creation_times[ns], ns not in missing_ns_in_kck,
+                                       keycloak_adm, expiry_settings, now)
+            except Exception:
+                # A failing expiry check must not stop the sync of the other namespaces.
+                logger.exception("  Expiry: check failed for namespace '%s'.", ns)
 
     # Sleep until next run
     sleep_time = int(os.getenv('CS_KCK_POLL_INTERVAL'))

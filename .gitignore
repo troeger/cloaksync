@@ -1,3 +1,18 @@
 venv
+*.pyc
+
+# Local test files
+deployment/k8s/test/smtp-send-mail/
+deployment/k8s/test/smtp-shell.yml
+
 .env
 deployment/k8s/production/.env
+deployment/k8s/rendered/
+
+# draw.io temporary files
+.$*.drawio.bkp
+.$*.drawio.dtmp
+
+# Notes
+TODO.md
+docs-private
