@@ -144,10 +144,10 @@ def ensure_owner_role_binding(namespace, user):
         ),
         rules=[
             client.V1PolicyRule(
-                [""], resources=["*"], verbs=["*"]
+                api_groups=[""], resources=["*"], verbs=["*"]
             ),
             client.V1PolicyRule(
-                ["extensions"], resources=["*"], verbs=["*"]
+                api_groups=["extensions"], resources=["*"], verbs=["*"]
             )
         ],
     )
